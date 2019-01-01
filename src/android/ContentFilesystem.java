@@ -152,7 +152,8 @@ public class ContentFilesystem extends Filesystem {
         	metadata.put("type", mimeType);
         	metadata.put("name", name);
         	metadata.put("fullPath", inputURL.path);
-        	metadata.put("lastModifiedDate", lastModified);
+            metadata.put("lastModifiedDate", lastModified);
+            metadata.put("originalFilePath", getRealPathFromURI(nativeUri));
         } catch (JSONException e) {
         	return null;
         }
@@ -219,5 +220,25 @@ public class ContentFilesystem extends Filesystem {
 	@Override
 	public boolean canRemoveFileAtLocalURL(LocalFilesystemURL inputURL) {
 		return true;
-	}
+    }
+    
+    public String getRealPathFromURI(Uri contentUri) { 
+        if (contentUri.getPath().startsWith("/storage")) { 
+            return contentUri.getPath(); 
+        } 
+        String id = DocumentsContract.getDocumentId(contentUri).split(":")[1]; 
+        String[] columns = { MediaStore.Files.FileColumns.DATA }; 
+        String selection = MediaStore.Files.FileColumns._ID + " = " + id; 
+        Cursor cursor = context.getContentResolver().query(MediaStore.Files.getContentUri("external"), columns, selection, null, null);
+        try { 
+            int columnIndex = cursor.getColumnIndex(columns[0]); 
+            if (cursor.moveToFirst()) { 
+                return cursor.getString(columnIndex); 
+            } 
+        } 
+        finally { 
+            cursor.close(); 
+        } 
+        return null; 
+    }
 }
